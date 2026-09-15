@@ -1,0 +1,40 @@
+server:
+  port: 8084 # 分布式 ID 生成服务端口
+
+spring:
+  application:
+    name: starflow-distributed-id-generator
+  profiles:
+    active: dev
+  threads:
+    virtual:
+      enabled: true # 启用虚拟线程
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        group: DEFAULT_GROUP
+        namespace: starflow
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+
+# CoSId 分布式 ID 生成配置（Redis 号段模式）
+cosid:
+  namespace: starflow # 号段 Redis key 命名空间前缀
+  segment:
+    enabled: true
+    mode: chain # SegmentChainId：预取号段、无锁、高吞吐
+    distributor:
+      type: redis
+    provider:
+      starflow_id:
+        offset: 10000 # 起始值（安全余量：Redis 现值=2）
+        step: 2000
+      user_id:
+        offset: 10000 # 起始值（安全余量：t_user 最大 id<1000）
+        step: 2000
+      note_id:
+        offset: 10000 # 起始值（笔记主键，趋势递增，对 PG 主键索引友好）
+        step: 2000
+      comment_id:
+        offset: 10000 # 起始值（评论主键，趋势递增，对 PG 主键索引友好）
+        step: 2000

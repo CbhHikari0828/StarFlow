@@ -1,0 +1,57 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: starflow-gateway
+  profiles:
+    active: dev
+  threads:
+    virtual:
+      enabled: true
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # 路由规则：/auth/** 转发到认证服务，去掉首段前缀
+          routes:
+            - id: starflow-auth
+              uri: lb://starflow-auth
+              predicates:
+                - Path=/auth/**
+              filters:
+                - StripPrefix=1
+            - id: starflow-oss
+              uri: lb://starflow-oss
+              predicates:
+                - Path=/oss/**
+              filters:
+                - StripPrefix=1
+            - id: starflow-user
+              uri: lb://starflow-user
+              predicates:
+                - Path=/user/**
+              filters:
+                - StripPrefix=1
+            - id: starflow-note
+              uri: lb://starflow-note
+              predicates:
+                - Path=/note/**
+              filters:
+                - StripPrefix=1
+            - id: starflow-user-relation
+              uri: lb://starflow-user-relation
+              predicates:
+                - Path=/relation/**
+              filters:
+                - StripPrefix=1
+            - id: starflow-comment
+              uri: lb://starflow-comment
+              predicates:
+                - Path=/comment/**
+              filters:
+                - StripPrefix=1
+      # 开启基于服务发现的动态路由（可选，按需保留）
+      discovery:
+        locator:
+          enabled: false

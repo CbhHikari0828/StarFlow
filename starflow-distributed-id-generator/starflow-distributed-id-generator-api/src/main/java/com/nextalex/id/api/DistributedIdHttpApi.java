@@ -1,0 +1,55 @@
+package com.nextalex.id.api;
+
+import com.nextalex.framework.common.response.Response;
+import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
+
+/**
+ * 分布式 ID 生成服务对外契约（HTTP Interface）.
+ *
+ * <p>供其他服务通过 {@code @ImportHttpServices(group = IdApiConstants.SERVICE_NAME,
+ * types = DistributedIdHttpApi.class)} 声明并注入调用。仅供内网服务间 RPC 使用，
+ * 不经网关对外暴露。
+ *
+ * @author NextAlex
+ * @date 2026/07/08
+ * @since 0.0.1
+ */
+@HttpExchange
+public interface DistributedIdHttpApi {
+
+    /** ID 服务上下文前缀（与 DistributedIdController 的 @RequestMapping 对齐） */
+    String PREFIX = "/id";
+
+    /**
+     * 生成小憨书 ID（starflow-id）.
+     *
+     * @return 全局唯一的小憨书 ID
+     */
+    @PostExchange(PREFIX + "/starflow/generate")
+    Response<Long> generateStarFlowId();
+
+    /**
+     * 生成用户 ID（user-id）.
+     *
+     * @return 全局唯一的用户 ID
+     */
+    @PostExchange(PREFIX + "/user/generate")
+    Response<Long> generateUserId();
+
+    /**
+     * 生成笔记 ID（note-id）.
+     *
+     * @return 全局唯一的笔记 ID
+     */
+    @PostExchange(PREFIX + "/note/generate")
+    Response<Long> generateNoteId();
+
+    /**
+     * 生成评论 ID（comment-id）.
+     *
+     * @return 全局唯一的评论 ID
+     */
+    @PostExchange(PREFIX + "/comment/generate")
+    Response<Long> generateCommentId();
+}

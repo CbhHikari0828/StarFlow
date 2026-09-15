@@ -1,0 +1,45 @@
+package com.nextalex.id.controller;
+
+import com.nextalex.framework.common.response.Response;
+import com.nextalex.id.api.DistributedIdHttpApi;
+import com.nextalex.id.service.DistributedIdService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 分布式 ID 生成控制器.
+ *
+ * <p>实现 {@link DistributedIdHttpApi} 契约，端点路径由契约的 {@code @PostExchange} 定义。
+ *
+ * @author NextAlex
+ * @date 2026/07/08
+ * @since 0.0.1
+ */
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+public class DistributedIdController implements DistributedIdHttpApi {
+
+    private final DistributedIdService distributedIdService;
+
+    @Override
+    public Response<Long> generateStarFlowId() {
+        return Response.success(distributedIdService.generateStarFlowId());
+    }
+
+    @Override
+    public Response<Long> generateUserId() {
+        return Response.success(distributedIdService.generateUserId());
+    }
+
+    @Override
+    public Response<Long> generateNoteId() {
+        return Response.success(distributedIdService.generateNoteId());
+    }
+
+    @Override
+    public Response<Long> generateCommentId() {
+        return Response.success(distributedIdService.generateCommentId());
+    }
+}

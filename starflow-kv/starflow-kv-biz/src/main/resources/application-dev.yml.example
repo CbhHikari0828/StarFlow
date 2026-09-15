@@ -1,0 +1,23 @@
+# 复制为 application-dev.yml 并填入真实值（真实文件已被 .gitignore 忽略）
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 101.43.61.11:18848
+        namespace: starflow
+        group: DEFAULT_GROUP
+
+  # ScyllaDB（CQL 协议兼容 Cassandra），由 Spring Boot 自动装配 CqlSession
+  cassandra:
+    keyspace-name: starflow        # 键空间，需预先在 Scylla 建好
+    contact-points: 127.0.0.1     # Scylla 地址
+    port: 9042
+    local-datacenter: datacenter1 # DataStax 驱动 4.x 必填，需与 Scylla 数据中心名一致
+    schema-action: none           # 不自动建表，keyspace/表由 DDL 预建
+
+# RocketMQ（消费发布笔记事务消息，把正文写入 ScyllaDB；2.3.x 原生自动装配，无需 @Import）
+rocketmq:
+  name-server: <rocketmq-name-server>     # 如 127.0.0.1:9876
+  consumer:
+    group: starflow_group
+    pull-batch-size: 5                    # 每次拉取的最大消息数

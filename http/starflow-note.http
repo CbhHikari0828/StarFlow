@@ -1,0 +1,473 @@
+### starflow 笔记服务 接口测试（IntelliJ HTTP Client）
+# 使用方式：
+#   - 环境 gateway（经网关 8000，需登录）：先跑 starflow-auth.http 登录写入 {{token}}，
+#     再测试 /note/publish（发布需 JWT，creatorId 由网关透传的 userId 头解析）。
+#   - 环境 note-direct（直连 8085）：绕过网关直连，手动补 userId 头模拟网关透传。
+# 前置：分布式 ID 服务(8084) / KV 服务(8083) / PostgreSQL / Redis / Nacos 均需就绪；
+#      话题 topicId 需在 t_topic 中存在（见 docs/sql/init_data.sql 种子数据）。
+#
+# 变量（http-client.env.json）：
+#   {{noteHost}}     gateway=http://localhost:8000  note-direct=http://localhost:8085
+#   {{noteBasePath}} gateway=/note                  note-direct=""
+#   {{token}}        由 starflow-auth.http 登录接口写入（gateway 环境用）
+#   {{userId}}       note-direct 环境下模拟网关透传的用户 ID
+#   {{topicId}}      话题 ID
+#   {{noteId}}       笔记 ID（详情/更新用；填一条已发布笔记的 ID）
+
+### 1. 发布图文笔记（经网关，带 JWT）—— 环境 gateway
+POST {{noteHost}}{{noteBasePath}}/note/publish
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": 0,
+  "imgUris": ["http://localhost:8081/starflow/sample.jpg"],
+  "title": "图文笔记测试标题",
+  "content": "图文笔记测试内容",
+  "topicId": {{topicId}}
+}
+
+> {%
+    client.test("图文发布成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 2. 发布视频笔记（经网关，带 JWT）—— 环境 gateway
+POST {{noteHost}}{{noteBasePath}}/note/publish
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": 1,
+  "videoUri": "http://localhost:8081/starflow/sample.mp4",
+  "title": "视频笔记测试标题",
+  "content": "视频笔记测试内容",
+  "topicId": {{topicId}}
+}
+
+> {%
+    client.test("视频发布成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 3. 发布图文笔记（直连 8085，手动补 userId 头）—— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/publish
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "type": 0,
+  "imgUris": ["http://localhost:8081/starflow/sample.jpg"],
+  "title": "直连图文笔记",
+  "content": "直连图文内容"
+}
+
+> {%
+    client.test("直连发布成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 4. 未知笔记类型应返回 NOTE-20000 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/publish
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "type": 9,
+  "title": "非法类型"
+}
+
+> {%
+    client.test("未知类型被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20000", "预期 NOTE-20000，实际 " + response.body.errorCode);
+    });
+%}
+
+### 5. 图文缺图应返回 NOTE-10001 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/publish
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "type": 0,
+  "title": "缺图的图文笔记"
+}
+
+> {%
+    client.test("缺图被参数校验拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-10001", "预期 NOTE-10001，实际 " + response.body.errorCode);
+    });
+%}
+
+### 6. 笔记详情（直连 8085）—— 环境 note-direct
+# 连续调两次：首次回源 DB + 写缓存，第二次命中本地缓存（观察日志「命中笔记详情本地缓存」）
+POST {{noteHost}}{{noteBasePath}}/note/detail
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("详情查询成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+        client.assert(response.body.data && response.body.data.id != null, "未返回笔记详情");
+    });
+%}
+
+### 7. 查询不存在的笔记应返回 NOTE-20002（并写空值缓存防穿透）—— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/detail
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": -1
+}
+
+> {%
+    client.test("笔记不存在", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20002", "预期 NOTE-20002，实际 " + response.body.errorCode);
+    });
+%}
+
+### 8. 更新笔记（直连 8085，仅作者本人可改）—— 环境 note-direct
+# userId 必须等于该笔记的 creatorId，否则返回 NOTE-20006
+POST {{noteHost}}{{noteBasePath}}/note/update
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}},
+  "type": 0,
+  "imgUris": ["http://localhost:8081/starflow/updated.jpg"],
+  "title": "更新后的标题",
+  "content": "更新后的内容111",
+  "topicId": {{topicId}}
+}
+
+> {%
+    client.test("更新成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 9. 更新他人笔记应返回 NOTE-20006 —— 环境 note-direct
+# 用一个非作者的 userId 头请求
+POST {{noteHost}}{{noteBasePath}}/note/update
+Content-Type: application/json
+userId: 999999
+
+{
+  "id": {{noteId}},
+  "type": 0,
+  "imgUris": ["http://localhost:8081/starflow/x.jpg"],
+  "title": "越权更新尝试"
+}
+
+> {%
+    client.test("越权被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20006", "预期 NOTE-20006，实际 " + response.body.errorCode);
+    });
+%}
+
+### 10. 笔记置顶 —— 环境 note-direct
+# 仅作者本人可操作，userId 必须等于该笔记 creatorId，否则返回 NOTE-20006
+POST {{noteHost}}{{noteBasePath}}/note/top
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}},
+  "isTop": true
+}
+
+> {%
+    client.test("置顶成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 11. 取消置顶 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/top
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}},
+  "isTop": false
+}
+
+> {%
+    client.test("取消置顶成功", function () {
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 12. 笔记仅对自己可见 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/visible/onlyme
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("改为仅自己可见成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 13. 笔记删除（逻辑删除，status=2）—— 环境 note-direct
+# 仅作者本人可删，userId 必须等于该笔记 creatorId
+POST {{noteHost}}{{noteBasePath}}/note/delete
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("删除成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 14. 删除他人笔记应返回 NOTE-20006 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/delete
+Content-Type: application/json
+userId: 999999
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("越权删除被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20006", "预期 NOTE-20006，实际 " + response.body.errorCode);
+    });
+%}
+
+### 15. 点赞笔记 —— 环境 note-direct
+# 前置：Redis 已加载 RedisBloom 模块；noteId 为一篇 status=1 的正常笔记
+POST {{noteHost}}{{noteBasePath}}/note/like
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("点赞成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 16. 重复点赞应返回 NOTE-20008 —— 环境 note-direct
+# 需先执行 #15 点赞成功后再执行本用例
+POST {{noteHost}}{{noteBasePath}}/note/like
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("重复点赞被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20008", "预期 NOTE-20008，实际 " + response.body.errorCode);
+    });
+%}
+
+### 17. 取消点赞笔记 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/unlike
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("取消点赞成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 18. 取消未点赞的笔记应返回 NOTE-20009 —— 环境 note-direct
+# 重要：本用例必须针对「该用户【从未点赞过】的笔记」。
+# 布隆过滤器不支持删除：一旦点赞过某笔记，布隆会永久标记它，之后即使取消点赞，
+# 再调本接口也会命中「误判可容忍」分支、幂等返回 success。
+# 因此请：在 #15 点赞【之前】先跑本用例，或把下面 id 换成一个 68001 从未点赞过的笔记 ID。
+POST {{noteHost}}{{noteBasePath}}/note/unlike
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("取消未点赞被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false（需针对从未点赞过的笔记）");
+        client.assert(response.body.errorCode === "NOTE-20009", "预期 NOTE-20009，实际 " + response.body.errorCode);
+    });
+%}
+
+### 19. 收藏笔记 —— 环境 note-direct
+# 前置：Redis 已加载 RedisBloom 模块；noteId 为一篇 status=1 的正常笔记
+POST {{noteHost}}{{noteBasePath}}/note/collect
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("收藏成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 20. 重复收藏应返回 NOTE-20010 —— 环境 note-direct
+# 需先执行 #19 收藏成功后再执行本用例
+POST {{noteHost}}{{noteBasePath}}/note/collect
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("重复收藏被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false");
+        client.assert(response.body.errorCode === "NOTE-20010", "预期 NOTE-20010，实际 " + response.body.errorCode);
+    });
+%}
+
+### 21. 取消收藏笔记 —— 环境 note-direct
+POST {{noteHost}}{{noteBasePath}}/note/uncollect
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("取消收藏成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 22. 取消未收藏的笔记应返回 NOTE-20011 —— 环境 note-direct
+# 重要：本用例必须针对「该用户【从未收藏过】的笔记」。
+# 布隆过滤器不支持删除：一旦收藏过某笔记，布隆会永久标记它，之后即使取消收藏，
+# 再调本接口也会命中「误判可容忍」分支、幂等返回 success。
+# 因此请：在 #19 收藏【之前】先跑本用例，或把下面 id 换成一个 68001 从未收藏过的笔记 ID。
+POST {{noteHost}}{{noteBasePath}}/note/uncollect
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "id": {{noteId}}
+}
+
+> {%
+    client.test("取消未收藏被拦截", function () {
+        client.assert(response.body.success === false, "预期 success=false（需针对从未收藏过的笔记）");
+        client.assert(response.body.errorCode === "NOTE-20011", "预期 NOTE-20011，实际 " + response.body.errorCode);
+    });
+%}
+
+### 23. 查询当前用户是否点赞/收藏某笔记 —— 环境 note-direct
+# 点赞/收藏判重已由布隆过滤器改为 Roaring Bitmap（R64.GETBIT，精确判断，无需 DB 二次校验）
+POST {{noteHost}}{{noteBasePath}}/note/isLikedAndCollectedData
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "noteId": {{noteId}}
+}
+
+> {%
+    client.test("查询点赞/收藏状态成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+        client.assert(response.body.data && response.body.data.hasOwnProperty("isLiked"), "返参缺 isLiked 字段");
+        client.assert(response.body.data && response.body.data.hasOwnProperty("isCollected"), "返参缺 isCollected 字段");
+    });
+%}
+
+###############################################################################
+# 用例：个人主页 - 已发布笔记列表（游标分页 + 首页 Redis 缓存 + 批量 isLiked）
+#   - ��第一页 cursor 传 null；用返参 nextCursor 翻下一页。
+#   - 网关白名单放行（匿名可查看他人主页）；登录后才有 isLiked 与本人实时点赞量。
+#   - 前置：note(8085)/user(8082)/count(8087) 均已启动；{{userId}} 为目标博主。
+###############################################################################
+
+### 查询已发布笔记列表 - 第一页（cursor 为 null）
+POST {{noteHost}}{{noteBasePath}}/note/published/list
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "userId": {{userId}},
+  "cursor": null
+}
+
+> {%
+    client.test("首页查询成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+        if (response.body.data && response.body.data.notes && response.body.data.notes.length > 0) {
+            var first = response.body.data.notes[0];
+            client.assert(first.hasOwnProperty("isLiked"), "笔记卡片缺 isLiked 字段");
+            client.assert(first.hasOwnProperty("likeTotal"), "笔记卡片缺 likeTotal 字段");
+            client.global.set("nextCursor", response.body.data.nextCursor);
+        }
+    });
+%}
+
+### 查询已发布笔记列表 - 下一页（用上一次返回的 nextCursor）
+POST {{noteHost}}{{noteBasePath}}/note/published/list
+Content-Type: application/json
+userId: {{userId}}
+
+{
+  "userId": {{userId}},
+  "cursor": {{nextCursor}}
+}
+
+> {%
+    client.test("翻页查询成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}

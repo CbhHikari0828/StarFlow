@@ -1,0 +1,64 @@
+### Maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.flattened-pom.xml
+
+### Build output ###
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### IntelliJ IDEA (ignore entirely — .idea/dataSources* holds DB connection info) ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Kotlin ###
+.kotlin
+
+### macOS ###
+.DS_Store
+
+### Runtime logs ###
+logs/
+
+### Local dev config with real connection info (commit the .example template instead) ###
+application-dev.yml
+
+### superpowers workflow scratch (ledger, task briefs, reports) ###
+.superpowers/
+
+### Qoder CLI local workspace (plans, session cache) ###
+.qoder/
+.agents/
+skills-lock.json
+
+### Local frontend API test console (intentionally not versioned) ###
+/starflow-test-console/
+
+### AI agent instructions (local only) ###
+AGENT.md
+AGENTS.md
+CLAUDE.md

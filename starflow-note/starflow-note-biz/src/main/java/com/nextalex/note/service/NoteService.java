@@ -1,0 +1,147 @@
+package com.nextalex.note.service;
+
+import com.nextalex.framework.common.response.Response;
+import com.nextalex.note.api.dto.req.FindPublishedNoteReqDTO;
+import com.nextalex.note.api.dto.resp.FindPublishedNoteRspDTO;
+import com.nextalex.note.model.vo.CollectNoteReqVO;
+import com.nextalex.note.model.vo.DeleteNoteReqVO;
+import com.nextalex.note.model.vo.FindNoteDetailReqVO;
+import com.nextalex.note.model.vo.FindNoteDetailRspVO;
+import com.nextalex.note.model.vo.FindNoteIsLikedAndCollectedReqVO;
+import com.nextalex.note.model.vo.FindNoteIsLikedAndCollectedRspVO;
+import com.nextalex.note.model.vo.FindPublishedNoteListReqVO;
+import com.nextalex.note.model.vo.FindPublishedNoteListRspVO;
+import com.nextalex.note.model.vo.LikeNoteReqVO;
+import com.nextalex.note.model.vo.PublishNoteReqVO;
+import com.nextalex.note.model.vo.TopNoteReqVO;
+import com.nextalex.note.model.vo.UnCollectNoteReqVO;
+import com.nextalex.note.model.vo.UnlikeNoteReqVO;
+import com.nextalex.note.model.vo.UpdateNoteReqVO;
+import com.nextalex.note.model.vo.UpdateNoteVisibleOnlyMeReqVO;
+
+/**
+ * 笔记业务.
+ *
+ * @author NextAlex
+ * @date 2026/07/09
+ * @since 0.0.1
+ */
+public interface NoteService {
+
+    /**
+     * 查询正常发布中的笔记最小信息.
+     *
+     * @param request 查询入参
+     * @return 笔记信息；不存在时 data 为 null
+     */
+    Response<FindPublishedNoteRspDTO> findPublishedById(FindPublishedNoteReqDTO request);
+
+    /**
+     * 笔记发布.
+     *
+     * @param publishNoteReqVO 发布入参
+     * @return 操作结果
+     */
+    Response<?> publishNote(PublishNoteReqVO publishNoteReqVO);
+
+    /**
+     * 笔记详情（二级缓存：Caffeine L1 + Redis L2 + DB，并发调用下游服务）.
+     *
+     * @param findNoteDetailReqVO 查询入参
+     * @return 笔记详情
+     */
+    Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO);
+
+    /**
+     * 笔记更新.
+     *
+     * @param updateNoteReqVO 更新入参
+     * @return 操作结果
+     */
+    Response<?> updateNote(UpdateNoteReqVO updateNoteReqVO);
+
+    /**
+     * 删除笔记本地缓存（L1 Caffeine）.
+     *
+     * <p>供广播消息消费者调用，删除本实例进程内的笔记详情本地缓存。
+     *
+     * @param noteId 笔记 ID
+     */
+    void deleteNoteLocalCache(Long noteId);
+
+    /**
+     * 删除笔记（逻辑删除，status 置为 2）.
+     *
+     * @param deleteNoteReqVO 删除入参
+     * @return 操作结果
+     */
+    Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
+
+    /**
+     * 笔记仅对自己可见.
+     *
+     * @param updateNoteVisibleOnlyMeReqVO 入参
+     * @return 操作结果
+     */
+    Response<?> visibleOnlyMe(UpdateNoteVisibleOnlyMeReqVO updateNoteVisibleOnlyMeReqVO);
+
+    /**
+     * 笔记置顶 / 取消置顶.
+     *
+     * @param topNoteReqVO 入参
+     * @return 操作结果
+     */
+    Response<?> topNote(TopNoteReqVO topNoteReqVO);
+
+    /**
+     * 点赞笔记（布隆过滤器 + ZSET + DB 三级判重，顺序 MQ 异步落库）.
+     *
+     * @param likeNoteReqVO 点赞入参
+     * @return 操作结果
+     */
+    Response<?> likeNote(LikeNoteReqVO likeNoteReqVO);
+
+    /**
+     * 取消点赞笔记（布隆校验 + 删除 ZSET 成员，顺序 MQ 异步更新落库）.
+     *
+     * @param unlikeNoteReqVO 取消点赞入参
+     * @return 操作结果
+     */
+    Response<?> unlikeNote(UnlikeNoteReqVO unlikeNoteReqVO);
+
+    /**
+     * 收藏笔记（布隆过滤器 + ZSET + DB 三级判重，顺序 MQ 异步落库）.
+     *
+     * @param collectNoteReqVO 收藏入参
+     * @return 操作结果
+     */
+    Response<?> collectNote(CollectNoteReqVO collectNoteReqVO);
+
+    /**
+     * 取消收藏笔记（布隆校验 + 删除 ZSET 成员，顺序 MQ 异步更新落库）.
+     *
+     * @param unCollectNoteReqVO 取消收藏入参
+     * @return 操作结果
+     */
+    Response<?> unCollectNote(UnCollectNoteReqVO unCollectNoteReqVO);
+
+    /**
+     * 获取当前登录用户对某笔记的「是否点赞、是否收藏」数据.
+     *
+     * @param findNoteIsLikedAndCollectedReqVO 入参（笔记 ID）
+     * @return 点赞 / 收藏标识；未登录时均为 false
+     */
+    Response<FindNoteIsLikedAndCollectedRspVO> isLikedAndCollectedData(
+            FindNoteIsLikedAndCollectedReqVO findNoteIsLikedAndCollectedReqVO);
+
+    /**
+     * 个人主页 - 游标分页查询博主已发布的笔记列表.
+     *
+     * <p>第一页优先查 Redis 缓存；并发调用用户/计数服务拼装发布者信息与点赞量；
+     * 登录用户返回每篇笔记的 isLiked；博主本人查看时点赞量保持实时。
+     *
+     * @param findPublishedNoteListReqVO 查询入参（目标博主 userId + 游标 cursor）
+     * @return 笔记卡片列表 + 下一页游标
+     */
+    Response<FindPublishedNoteListRspVO> findPublishedNoteList(FindPublishedNoteListReqVO findPublishedNoteListReqVO);
+}

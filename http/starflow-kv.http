@@ -1,0 +1,94 @@
+### starflow KV 键值存储服务 接口测试（IntelliJ HTTP Client）
+# 使用方式：
+#   1. 右上角选择环境：kv-direct（直连 kv 8083）
+#   2. KV 服务不接网关、不校验 JWT，直连即可（供笔记服务经内网 RPC 调用）
+#   3. 新增接口按笔记服务传入的「内容 UUID」作主键存取（改造）。
+#      先执行「新增」写入一个自定义 UUID，再用同一 UUID 查询/删除。
+#
+# 变量（http-client.env.json / kv-direct）：
+#   {{kvHost}}      直连=http://localhost:8083
+#   {{kvBasePath}}  直连=""
+#   {{contentUuid}} 笔记内容 UUID（新增/查询/删除共用）
+
+### 1. 新增笔记内容
+POST {{kvHost}}{{kvBasePath}}/kv/note/content/add
+Content-Type: application/json
+
+{
+  "uuid": "{{contentUuid}}",
+  "content": "笔记内容测试 - HTTP Client"
+}
+
+> {%
+    client.test("新增成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 2. 查询笔记内容
+POST {{kvHost}}{{kvBasePath}}/kv/note/content/find
+Content-Type: application/json
+
+{
+  "uuid": "{{contentUuid}}"
+}
+
+> {%
+    client.test("查询响应结构正确", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        // 命中则 success=true 且返回 content；未命中则 success=false, errorCode=KV-20000
+        if (response.body.success) {
+            client.assert(response.body.data != null, "命中但未返回内容");
+            client.log("查询到内容：" + response.body.data.content);
+        } else {
+            client.assert(response.body.errorCode === "KV-20000", "非预期错误码：" + JSON.stringify(response.body));
+        }
+    });
+%}
+
+### 3. 删除笔记内容
+POST {{kvHost}}{{kvBasePath}}/kv/note/content/delete
+Content-Type: application/json
+
+{
+  "uuid": "{{contentUuid}}"
+}
+
+> {%
+    client.test("删除成功", function () {
+        client.assert(response.status === 200, "HTTP 状态非 200");
+        client.assert(response.body.success === true, "success 非 true：" + JSON.stringify(response.body));
+    });
+%}
+
+### 4. 参数校验：笔记内容为空应返回 KV-10001
+POST {{kvHost}}{{kvBasePath}}/kv/note/content/add
+Content-Type: application/json
+
+{
+  "uuid": "{{contentUuid}}",
+  "content": ""
+}
+
+> {%
+    client.test("参数校验拦截", function () {
+        client.assert(response.body.success === false, "空内容应校验失败");
+        client.assert(response.body.errorCode === "KV-10001", "非预期错误码：" + JSON.stringify(response.body));
+    });
+%}
+
+### 5. 参数校验：畸形 UUID 应返回 KV-10001
+POST {{kvHost}}{{kvBasePath}}/kv/note/content/find
+Content-Type: application/json
+
+{
+  "uuid": "not-a-uuid"
+}
+
+> {%
+    client.test("畸形 UUID 被拦截", function () {
+        client.assert(response.body.success === false, "畸形 UUID 应失败");
+        client.assert(response.body.errorCode === "KV-10001", "非预期错误码：" + JSON.stringify(response.body));
+    });
+%}

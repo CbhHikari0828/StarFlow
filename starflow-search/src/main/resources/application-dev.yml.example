@@ -1,0 +1,43 @@
+# 复制为 application-dev.yml 并填入真实值（真实文件已被 .gitignore 忽略）
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: <nacos-addr>          # 如 127.0.0.1:8848
+        namespace: starflow
+        group: DEFAULT_GROUP
+
+  # PostgreSQL（增量同步时重查笔记/用户索引全字段，复用 starflow 库）
+  datasource:
+    url: jdbc:postgresql://<pg-host>:5432/starflow
+    username: <pg-user>
+    password: <pg-password>
+    driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 60000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      pool-name: StarFlowHikariPool
+
+# Elasticsearch 连接（无鉴权 dev 集群）
+elasticsearch:
+  address: <es-host>:9200                  # 如 192.168.1.117:9200
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: false
+
+# RocketMQ（仅消费者：消费笔记/用户变更事件同步 ES 索引）
+rocketmq:
+  name-server: <rocketmq-name-server>      # 如 127.0.0.1:9876
+  consumer:
+    group: starflow_search_group
+    pull-batch-size: 10
+
+logging:
+  level:
+    com.nextalex.search: info

@@ -1,0 +1,67 @@
+package com.nextalex.count.controller;
+
+import com.nextalex.count.api.dto.req.FindNoteCountReqDTO;
+import com.nextalex.count.api.dto.req.FindNoteCountsByIdsReqDTO;
+import com.nextalex.count.api.dto.req.FindUserCountReqDTO;
+import com.nextalex.count.api.dto.resp.FindNoteCountRspDTO;
+import com.nextalex.count.api.dto.resp.FindUserCountRspDTO;
+import com.nextalex.count.service.CountQueryService;
+import com.nextalex.count.service.UserCountQueryService;
+import com.nextalex.framework.common.response.Response;
+import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+/**
+ * 计数服务内网查询控制器.
+ *
+ * @author NextAlex
+ * @date 2026/07/15
+ * @since 0.0.1
+ */
+@RestController
+@RequestMapping("/count")
+@RequiredArgsConstructor
+public class CountController {
+
+    private final CountQueryService countQueryService;
+    private final UserCountQueryService userCountQueryService;
+
+    /**
+     * 查询笔记维度计数.
+     */
+    @PostMapping("/note/findById")
+    public Response<FindNoteCountRspDTO> findNoteCountById(
+            @Validated @RequestBody FindNoteCountReqDTO request) {
+        return countQueryService.findNoteCountById(request);
+    }
+
+    /**
+     * 批量查询笔记维度计数.
+     *
+     * @param request 查询入参（笔记 ID 集合）
+     * @return 各笔记的计数集合
+     */
+    @PostMapping("/notes/data")
+    public Response<List<FindNoteCountRspDTO>> findNotesCountData(
+            @Validated @RequestBody FindNoteCountsByIdsReqDTO request) {
+        return countQueryService.findNotesCountData(request);
+    }
+
+    /**
+     * 查询用户维度计数.
+     *
+     * @param request 查询入参（用户 ID）
+     * @return 用户计数
+     */
+    @PostMapping("/user/data")
+    public Response<FindUserCountRspDTO> findUserCountData(
+            @Validated @RequestBody FindUserCountReqDTO request) {
+        return userCountQueryService.findUserCountData(request);
+    }
+}

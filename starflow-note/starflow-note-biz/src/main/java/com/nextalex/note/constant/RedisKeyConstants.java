@@ -1,0 +1,99 @@
+package com.nextalex.note.constant;
+
+/**
+ * Redis Key 全局常量.
+ *
+ * <p>笔记服务持有的 Redis Key。所有 Key 以 {@code starflow:} 为命名空间前缀，
+ * 笔记相关进一步收束到 {@code starflow:note:} 子前缀。
+ *
+ * @author NextAlex
+ * @date 2026/07/09
+ * @since 0.0.1
+ */
+public final class RedisKeyConstants {
+
+    private RedisKeyConstants() {
+    }
+
+    /**
+     * 笔记详情 Key 前缀（预留，供笔记详情缓存使用）
+     */
+    public static final String NOTE_DETAIL_KEY_PREFIX = "starflow:note:detail:";
+
+    /**
+     * 构建笔记详情 Key
+     *
+     * @param noteId 笔记 ID
+     * @return starflow:note:detail:{noteId}
+     */
+    public static String buildNoteDetailKey(Long noteId) {
+        return NOTE_DETAIL_KEY_PREFIX + noteId;
+    }
+
+    /**
+     * 个人主页已发布笔记列表 Key 前缀（String 结构，缓存首页 JSON）
+     */
+    public static final String PUBLISHED_NOTE_LIST_KEY_PREFIX = "starflow:note:published:list:";
+
+    /**
+     * 构建个人主页已发布笔记列表 Key.
+     *
+     * @param userId 博主用户 ID
+     * @return starflow:note:published:list:{userId}
+     */
+    public static String buildPublishedNoteListKey(Long userId) {
+        return PUBLISHED_NOTE_LIST_KEY_PREFIX + userId;
+    }
+
+    /** 用户笔记点赞 Roaring Bitmap Key 前缀 */
+    public static final String RBITMAP_NOTE_LIKE_KEY_PREFIX = "starflow:note:rbitmap:like:";
+
+    /** 用户笔记收藏 Roaring Bitmap Key 前缀 */
+    public static final String RBITMAP_NOTE_COLLECT_KEY_PREFIX = "starflow:note:rbitmap:collect:";
+
+    /** 用户笔记点赞列表 ZSET Key 前缀 */
+    public static final String ZSET_NOTE_LIKE_KEY_PREFIX = "starflow:note:zset:like:";
+
+    /** 用户笔记收藏列表 ZSET Key 前缀 */
+    public static final String ZSET_NOTE_COLLECT_KEY_PREFIX = "starflow:note:zset:collect:";
+
+    /**
+     * 构建用户笔记点赞 Roaring Bitmap Key.
+     *
+     * @param userId 用户 ID
+     * @return starflow:note:rbitmap:like:{userId}
+     */
+    public static String buildRBitmapNoteLikeKey(Long userId) {
+        return RBITMAP_NOTE_LIKE_KEY_PREFIX + userId;
+    }
+
+    /**
+     * 构建用户笔记收藏 Roaring Bitmap Key.
+     *
+     * @param userId 用户 ID
+     * @return starflow:note:rbitmap:collect:{userId}
+     */
+    public static String buildRBitmapNoteCollectKey(Long userId) {
+        return RBITMAP_NOTE_COLLECT_KEY_PREFIX + userId;
+    }
+
+    /**
+     * 构建用户笔记点赞列表 ZSET Key
+     *
+     * @param userId 用户 ID
+     * @return starflow:note:zset:like:{userId}
+     */
+    public static String buildZSetNoteLikeKey(Long userId) {
+        return ZSET_NOTE_LIKE_KEY_PREFIX + userId;
+    }
+
+    /**
+     * 构建用户笔记收藏列表 ZSET Key
+     *
+     * @param userId 用户 ID
+     * @return starflow:note:zset:collect:{userId}
+     */
+    public static String buildZSetNoteCollectKey(Long userId) {
+        return ZSET_NOTE_COLLECT_KEY_PREFIX + userId;
+    }
+}

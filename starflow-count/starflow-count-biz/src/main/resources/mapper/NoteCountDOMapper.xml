@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nextalex.count.domain.mapper.NoteCountDOMapper">
+
+    <!-- 新增或累加笔记点赞总数：note_id 唯一索引冲突则在原值上累加 -->
+    <insert id="insertOrUpdateLikeTotalByNoteId">
+        INSERT INTO t_note_count (note_id, like_total)
+        VALUES (#{noteId}, #{count})
+        ON CONFLICT (note_id)
+        DO UPDATE SET like_total = t_note_count.like_total + #{count}
+    </insert>
+
+    <!-- 新增或累加笔记收藏总数：note_id 唯一索引冲突则在原值上累加 -->
+    <insert id="insertOrUpdateCollectTotalByNoteId">
+        INSERT INTO t_note_count (note_id, collect_total)
+        VALUES (#{noteId}, #{count})
+        ON CONFLICT (note_id)
+        DO UPDATE SET collect_total = t_note_count.collect_total + #{count}
+    </insert>
+
+    <insert id="insertOrUpdateCommentTotalByNoteId">
+        INSERT INTO t_note_count (note_id, comment_total)
+        VALUES (#{noteId}, GREATEST(0, #{count}))
+        ON CONFLICT (note_id)
+        DO UPDATE SET comment_total = GREATEST(0, t_note_count.comment_total + #{count})
+    </insert>
+
+    <!-- 根据笔记 ID 集合批量查询计数 -->
+    <select id="selectByNoteIds" resultType="com.nextalex.count.domain.dataobject.NoteCountDO">
+        SELECT note_id, like_total, collect_total, comment_total
+        FROM t_note_count
+        WHERE note_id IN
+        <foreach collection="noteIds" item="noteId" open="(" separator="," close=")">
+            #{noteId}
+        </foreach>
+    </select>
+
+</mapper>

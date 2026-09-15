@@ -1,0 +1,64 @@
+# 复制为 application-dev.yml 并填入真实值（真实文件已被 .gitignore 忽略）
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: <nacos-addr>
+        namespace: starflow
+        group: DEFAULT_GROUP
+
+  # PostgreSQL（数据库 starflow）
+  datasource:
+    url: jdbc:postgresql://<pg-host>:5432/starflow
+    username: <pg-user>
+    password: <pg-password>
+    driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 60000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      pool-name: StarFlowHikariPool
+
+  data:
+    redis:
+      host: <redis-host>
+      port: 6379
+      password: <redis-password>
+      database: 0
+      timeout: 5s
+      connect-timeout: 5s
+      lettuce:
+        pool:
+          max-active: 200
+          max-wait: -1ms
+          min-idle: 0
+          max-idle: 10
+
+# RocketMQ（评论发布异步写 + 批量消费落库）
+rocketmq:
+  name-server: <rocketmq-name-server>     # 如 127.0.0.1:9876
+  producer:
+    group: starflow_comment_group
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 0       # 自定义重试接管，starter 不再重试
+    retry-times-when-send-async-failed: 0
+    max-message-size: 4096
+  consumer:
+    group: starflow_comment_group
+    pull-batch-size: 30
+
+# PowerJob Worker（发送失败 MQ 兜底扫表重发，手动 @Bean 读取，见 config/PowerJobConfig）
+# 需先在 powerjob-server 控制台注册应用名 starflow-comment，并配置定时任务指向 MqResendProcessor
+powerjob:
+  worker:
+    server-address: <powerjob-server-addr>:7700   # powerjob-server HTTP 端口默认 7700，多地址逗号分隔
+    app-name: starflow-comment                      # 需与 powerjob-server 控制台已注册的应用名一致
+    port: 27777
+    store-strategy: disk
+
+logging:
+  level:
+    com.nextalex.comment.domain.mapper: debug

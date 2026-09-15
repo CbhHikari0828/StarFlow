@@ -1,0 +1,165 @@
+#-------------------------------------------------------------------------------#
+#               Qodana analysis is configured by qodana.yaml file               #
+#             https://www.jetbrains.com/help/qodana/qodana-yaml.html            #
+#-------------------------------------------------------------------------------#
+#################################################################################
+#              WARNING: Do not store sensitive information in this file,        #
+#               as its contents will be included in the Qodana report.          #
+#################################################################################
+version: "1.0"
+#Specify inspection profile for code analysis
+profile:
+  name: qodana.starter
+#Enable inspections
+#include:
+#  - name: <SomeEnabledInspectionId>
+#Disable inspections
+#exclude:
+#  - name: <SomeDisabledInspectionId>
+#    paths:
+#      - <path/where/not/run/inspection>
+projectJDK: "25" #(Applied in CI/CD pipeline)
+#Execute shell command before Qodana execution (Applied in CI/CD pipeline)
+#bootstrap: sh ./prepare-qodana.sh
+#Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
+#plugins:
+#  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
+# Quality gate. Will fail the CI/CD pipeline if any condition is not met
+# severityThresholds - configures maximum thresholds for different problem severities
+# testCoverageThresholds - configures minimum code coverage on a whole project and newly added code
+# Code Coverage is available in Ultimate and Ultimate Plus plans
+#failureConditions:
+#  severityThresholds:
+#    any: 15
+#    critical: 5
+#  testCoverageThresholds:
+#    fresh: 70
+#    total: 50
+
+#Qodana supports other languages, for example, Python, JavaScript, TypeScript, Go, C#, PHP
+#For all supported languages see https://www.jetbrains.com/help/qodana/linters.html
+linter: jetbrains/qodana-jvm-community:2026.1
+include:
+  - name: UNUSED_IMPORT
+exclude:
+  - name: All
+    paths:
+      - starflow-auth
+      - starflow-auth/src
+      - starflow-auth/src/main
+      - starflow-auth/src/main/java
+      - starflow-auth/src/main/java/com
+      - starflow-auth/src/main/java/com/nextalex
+      - starflow-auth/src/main/java/com/nextalex/auth
+      - starflow-auth/src/main/java/com/nextalex/auth/StarFlowAuthApplication.java
+      - starflow-comment
+      - starflow-comment/starflow-comment-biz
+      - starflow-comment/starflow-comment-biz/src
+      - starflow-comment/starflow-comment-biz/src/main
+      - starflow-comment/starflow-comment-biz/src/main/java
+      - starflow-comment/starflow-comment-biz/src/main/java/com
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/exception
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/exception/GlobalExceptionHandler.java
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/service
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/service/impl
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/service/impl/CommentQueryServiceImpl.java
+      - starflow-comment/starflow-comment-biz/src/main/java/com/nextalex/comment/StarFlowCommentApplication.java
+      - starflow-count
+      - starflow-count/starflow-count-biz
+      - starflow-count/starflow-count-biz/src
+      - starflow-count/starflow-count-biz/src/main
+      - starflow-count/starflow-count-biz/src/main/java
+      - starflow-count/starflow-count-biz/src/main/java/com
+      - starflow-count/starflow-count-biz/src/main/java/com/nextalex
+      - starflow-count/starflow-count-biz/src/main/java/com/nextalex/count
+      - starflow-count/starflow-count-biz/src/main/java/com/nextalex/count/StarFlowCountApplication.java
+      - starflow-data-align
+      - starflow-data-align/src
+      - starflow-data-align/src/main
+      - starflow-data-align/src/main/java
+      - starflow-data-align/src/main/java/com
+      - starflow-data-align/src/main/java/com/nextalex
+      - starflow-data-align/src/main/java/com/nextalex/dataalign
+      - starflow-data-align/src/main/java/com/nextalex/dataalign/StarFlowDataAlignApplication.java
+      - starflow-distributed-id-generator
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main/java
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main/java/com
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main/java/com/nextalex
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main/java/com/nextalex/id
+      - starflow-distributed-id-generator/starflow-distributed-id-generator-biz/src/main/java/com/nextalex/id/StarFlowDistributedIdGeneratorApplication.java
+      - starflow-gateway
+      - starflow-gateway/src
+      - starflow-gateway/src/main
+      - starflow-gateway/src/main/java
+      - starflow-gateway/src/main/java/com
+      - starflow-gateway/src/main/java/com/nextalex
+      - starflow-gateway/src/main/java/com/nextalex/gateway
+      - starflow-gateway/src/main/java/com/nextalex/gateway/StarFlowGatewayApplication.java
+      - starflow-gateway/src/main/resources
+      - starflow-gateway/src/main/resources/application.yml
+      - starflow-kv
+      - starflow-kv/starflow-kv-biz
+      - starflow-kv/starflow-kv-biz/src
+      - starflow-kv/starflow-kv-biz/src/main
+      - starflow-kv/starflow-kv-biz/src/main/java
+      - starflow-kv/starflow-kv-biz/src/main/java/com
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex/kv
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex/kv/service
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex/kv/service/impl
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex/kv/service/impl/CommentContentServiceImpl.java
+      - starflow-kv/starflow-kv-biz/src/main/java/com/nextalex/kv/StarFlowKvApplication.java
+      - starflow-note
+      - starflow-note/starflow-note-biz
+      - starflow-note/starflow-note-biz/src
+      - starflow-note/starflow-note-biz/src/main
+      - starflow-note/starflow-note-biz/src/main/java
+      - starflow-note/starflow-note-biz/src/main/java/com
+      - starflow-note/starflow-note-biz/src/main/java/com/nextalex
+      - starflow-note/starflow-note-biz/src/main/java/com/nextalex/note
+      - starflow-note/starflow-note-biz/src/main/java/com/nextalex/note/StarFlowNoteApplication.java
+      - starflow-oss
+      - starflow-oss/starflow-oss-biz
+      - starflow-oss/starflow-oss-biz/src
+      - starflow-oss/starflow-oss-biz/src/main
+      - starflow-oss/starflow-oss-biz/src/main/java
+      - starflow-oss/starflow-oss-biz/src/main/java/com
+      - starflow-oss/starflow-oss-biz/src/main/java/com/nextalex
+      - starflow-oss/starflow-oss-biz/src/main/java/com/nextalex/oss
+      - starflow-oss/starflow-oss-biz/src/main/java/com/nextalex/oss/StarFlowOssApplication.java
+      - starflow-oss/starflow-oss-biz/src/main/resources
+      - starflow-oss/starflow-oss-biz/src/main/resources/application-prod.yml
+      - starflow-search
+      - starflow-search/src
+      - starflow-search/src/main
+      - starflow-search/src/main/java
+      - starflow-search/src/main/java/com
+      - starflow-search/src/main/java/com/nextalex
+      - starflow-search/src/main/java/com/nextalex/search
+      - starflow-search/src/main/java/com/nextalex/search/StarFlowSearchApplication.java
+      - starflow-user
+      - starflow-user/starflow-user-biz
+      - starflow-user/starflow-user-biz/src
+      - starflow-user/starflow-user-biz/src/main
+      - starflow-user/starflow-user-biz/src/main/java
+      - starflow-user/starflow-user-biz/src/main/java/com
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex/user
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex/user/service
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex/user/service/impl
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex/user/service/impl/UserServiceImpl.java
+      - starflow-user/starflow-user-biz/src/main/java/com/nextalex/user/StarFlowUserApplication.java
+      - starflow-user-relation
+      - starflow-user-relation/starflow-user-relation-biz
+      - starflow-user-relation/starflow-user-relation-biz/src
+      - starflow-user-relation/starflow-user-relation-biz/src/main
+      - starflow-user-relation/starflow-user-relation-biz/src/main/java
+      - starflow-user-relation/starflow-user-relation-biz/src/main/java/com
+      - starflow-user-relation/starflow-user-relation-biz/src/main/java/com/nextalex
+      - starflow-user-relation/starflow-user-relation-biz/src/main/java/com/nextalex/relation
+      - starflow-user-relation/starflow-user-relation-biz/src/main/java/com/nextalex/relation/StarFlowUserRelationApplication.java
