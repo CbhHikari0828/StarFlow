@@ -1,0 +1,4 @@
+interface:
+  display_name: "StarFlow Backend Engineering"
+  short_description: "StarFlow-derived backend design and review"
+  default_prompt: "Use $starflow-backend-engineering to design or review this backend service with explicit contracts and reliability."
